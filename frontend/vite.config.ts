@@ -5,12 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    console.log("=== VITE ENV DEBUG ===");
-		console.log("MODE:", mode);
-		console.log(
-			"GEMINI_API_KEY:",
-			env.GEMINI_API_KEY ? "✅ Loaded: " + env.GEMINI_API_KEY : "❌ Missing",
-		);
     return {
       server: {
         port: 3000,

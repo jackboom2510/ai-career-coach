@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { UserProfile, StudyPlan, RoadmapWeek, Task, CVAnalysisResult } from "../types";
 
-const apiKey =
-	process.env.API_KEY || "AIzaSyAtDpPgmJf2Sr-kwE_y2jbRtOf5bIEiwQs";
+const apiKey = process.env.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to define task schema separately so we can reuse or nest it

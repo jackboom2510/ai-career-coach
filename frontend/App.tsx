@@ -8,6 +8,7 @@ import ChatAssistant from './components/ChatAssistant';
 import AgentPanel from './components/AgentPanel';
 import LanguageSelector from './components/LanguageSelector';
 import Confetti from './components/Confetti';
+import AIThoughtScreen from './components/AIThoughtScreen';
 import BadgeDisplay from './components/BadgeDisplay';
 import { generateStudyPlan, regenerateWeekPlan } from './services/geminiService';
 import { updateStreak, checkNewBadges, calculateTimeEstimation } from './services/engagementService';
@@ -635,11 +636,12 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col h-[calc(100vh-64px)] lg:h-screen overflow-hidden relative">
         
         {loading && !studyPlan && (
-            <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Crafting your roadmap...</h3>
-                <p className="text-slate-500 max-w-md">Gemini 3 Pro is analyzing your profile {profile?.cvText ? 'and CV ' : ''}to build a custom {profile?.timelineMonths}-month strategy.</p>
-            </div>
+            <AIThoughtScreen 
+              isLoading={loading}
+              targetRole={profile?.targetRole}
+              timelineMonths={profile?.timelineMonths}
+              hasCV={!!profile?.cvText}
+            />
         )}
 
         {!studyPlan && !loading && (
