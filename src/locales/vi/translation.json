@@ -1,0 +1,110 @@
+{
+  "common": {
+    "appName": "AI Career Coach",
+    "loading": "Đang tải...",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "submit": "Gửi",
+    "error": "Lỗi",
+    "success": "Thành công"
+  },
+  "nav": {
+    "roadmap": "Lộ trình",
+    "thisWeek": "Tuần này",
+    "projects": "Dự án",
+    "export": "Xuất",
+    "settings": "Cài đặt"
+  },
+  "onboarding": {
+    "title": "Tạo Lộ trình Sự nghiệp Của Bạn",
+    "subtitle": "Trả lời vài câu hỏi để nhận kế hoạch học tập được cá nhân hóa",
+    "currentRole": "Vị trí Hiện tại",
+    "currentRolePlaceholder": "vd: Trưởng phòng Marketing",
+    "targetRole": "Vị trí Mục tiêu",
+    "targetRolePlaceholder": "vd: Lập trình viên Frontend",
+    "currentSkills": "Kỹ năng Hiện tại",
+    "currentSkillsPlaceholder": "Bạn đã có những kỹ năng gì?",
+    "weakAreas": "Lĩnh vực Cần cải thiện",
+    "weakAreasPlaceholder": "Bạn cần học những kỹ năng gì?",
+    "availability": "Số giờ Mỗi tuần",
+    "learningStyle": "Phong cách Học tập Ưa thích",
+    "timeline": "Thời gian (tháng)",
+    "cvText": "Dán CV của bạn (tùy chọn)",
+    "submitBtn": "Tạo Lộ trình Của Tôi"
+  },
+  "learningStyle": {
+    "visual": "Hình ảnh (Video/Sơ đồ)",
+    "handsOn": "Thực hành (Lập trình/Xây dựng)",
+    "academic": "Học thuật (Đọc/Lý thuyết)",
+    "mixed": "Kết hợp"
+  },
+  "agent": {
+    "title": "AI Agent Coach",
+    "subtitle": "9 công cụ có sẵn",
+    "ready": "Sẵn sàng",
+    "connecting": "Đang kết nối...",
+    "unavailable": "Dịch vụ agent không khả dụng",
+    "placeholder": "Hỏi về công việc, tài nguyên, tiến độ...",
+    "intro": "Xin chào! Tôi là AI coach được cung cấp bởi LangGraph agent với khả năng tìm kiếm web và bộ nhớ. Tôi có thể nghiên cứu thị trường việc làm, xác thực tài nguyên và theo dõi hành trình học tập của bạn. Bạn cần giúp gì?",
+    "reset": "Đặt lại cuộc trò chuyện! Tôi sẵn sàng giúp bạn.",
+    "startBackend": "Dịch vụ agent không khả dụng. Khởi động backend:",
+    "questions": {
+      "demand": "Nhu cầu tuyển dụng cho {{role}} năm 2026?",
+      "pace": "Tiến độ học của tôi so với kế hoạch?",
+      "resources": "Bạn có thể tìm tài nguyên tốt hơn cho chủ đề tuần này?"
+    }
+  },
+  "badge": {
+    "unlocked": "Mở khóa huy hiệu!",
+    "firstWeek": "Bước đầu tiên",
+    "quarterWay": "Đang tiến bộ",
+    "halfway": "Nửa đường",
+    "finalSprint": "Sprint cuối",
+    "courseComplete": "Hoàn thành",
+    "streak3": "Đang cháy",
+    "streak7": "Không thể ngăn cản",
+    "consistency": "Kiên trì"
+  },
+  "roadmap": {
+    "week": "Tuần {{number}}",
+    "completed": "Hoàn thành",
+    "remaining": "{{count}} nhiệm vụ còn lại",
+    "notes": "Ghi chú",
+    "addNotes": "Thêm ghi chú..."
+  },
+  "weekly": {
+    "title": "Tuần này",
+    "theme": "Chủ đề",
+    "tasks": "Nhiệm vụ",
+    "resources": "Tài nguyên",
+    "strategy": "Chiến lược",
+    "completeTask": "Đánh dấu Hoàn thành",
+    "regenerate": "Tạo lại Tuần"
+  },
+  "export": {
+    "pdf": "PDF",
+    "markdown": "Markdown",
+    "clipboard": "Sao chép"
+  },
+  "profile": {
+    "current": "Hiện tại",
+    "target": "Mục tiêu",
+    "timeline": "Thời gian",
+    "streak": "Streak",
+    "badges": "Huy hiệu",
+    "daysActive": "Ngày Hoạt động",
+    "unlocked": "Đã mở"
+  },
+  "settings": {
+    "resetProgress": "Chỉ Đặt lại Tiến độ",
+    "reschedule": "Sắp xếp Lại Thời gian",
+    "deleteAll": "Xóa Hồ sơ & Kế hoạch",
+    "editProfile": "Chỉnh sửa Hồ sơ"
+  }
+}

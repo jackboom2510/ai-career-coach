@@ -1,0 +1,110 @@
+{
+  "common": {
+    "appName": "AI Career Coach",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "roadmap": "Roadmap",
+    "thisWeek": "This Week",
+    "projects": "Projects",
+    "export": "Export",
+    "settings": "Settings"
+  },
+  "onboarding": {
+    "title": "Create Your Career Roadmap",
+    "subtitle": "Answer a few questions to get your personalized AI study plan",
+    "currentRole": "Current Role",
+    "currentRolePlaceholder": "e.g., Marketing Manager",
+    "targetRole": "Target Role",
+    "targetRolePlaceholder": "e.g., Frontend Developer",
+    "currentSkills": "Current Skills",
+    "currentSkillsPlaceholder": "What skills do you already have?",
+    "weakAreas": "Areas to Improve",
+    "weakAreasPlaceholder": "What skills do you need to learn?",
+    "availability": "Weekly Hours Available",
+    "learningStyle": "Preferred Learning Style",
+    "timeline": "Timeline (months)",
+    "cvText": "Paste your CV (optional)",
+    "submitBtn": "Generate My Roadmap"
+  },
+  "learningStyle": {
+    "visual": "Visual (Videos/Diagrams)",
+    "handsOn": "Hands-on (Coding/Building)",
+    "academic": "Academic (Reading/Theory)",
+    "mixed": "Mixed"
+  },
+  "agent": {
+    "title": "AI Agent Coach",
+    "subtitle": "9 tools available",
+    "ready": "Ready",
+    "connecting": "Connecting...",
+    "unavailable": "Agent service unavailable",
+    "placeholder": "Ask about jobs, resources, pace...",
+    "intro": "Hi! I'm your AI coach powered by a LangGraph agent with web search and memory capabilities. I can research job markets, validate resources, and track your learning journey. What would you like help with?",
+    "reset": "Conversation reset! I'm ready to help you again.",
+    "startBackend": "Agent service unavailable. Start backend:",
+    "questions": {
+      "demand": "What's the demand for {{role}} in 2026?",
+      "pace": "How's my learning pace compared to my timeline?",
+      "resources": "Can you find better resources for this week's topic?"
+    }
+  },
+  "badge": {
+    "unlocked": "Badge Unlocked!",
+    "firstWeek": "First Steps",
+    "quarterWay": "Getting Serious",
+    "halfway": "Halfway Hero",
+    "finalSprint": "Final Sprint",
+    "courseComplete": "Mission Accomplished",
+    "streak3": "On Fire",
+    "streak7": "Unstoppable",
+    "consistency": "Consistent"
+  },
+  "roadmap": {
+    "week": "Week {{number}}",
+    "completed": "Completed",
+    "remaining": "{{count}} tasks remaining",
+    "notes": "Notes",
+    "addNotes": "Add notes..."
+  },
+  "weekly": {
+    "title": "This Week",
+    "theme": "Theme",
+    "tasks": "Tasks",
+    "resources": "Resources",
+    "strategy": "Strategy",
+    "completeTask": "Mark Complete",
+    "regenerate": "Regenerate Week"
+  },
+  "export": {
+    "pdf": "PDF",
+    "markdown": "Markdown",
+    "clipboard": "Copy to Clipboard"
+  },
+  "profile": {
+    "current": "Current",
+    "target": "Target",
+    "timeline": "Timeline",
+    "streak": "Streak",
+    "badges": "Badges",
+    "daysActive": "Days Active",
+    "unlocked": "Unlocked"
+  },
+  "settings": {
+    "resetProgress": "Reset Progress Only",
+    "reschedule": "Reschedule Timeline",
+    "deleteAll": "Delete Profile & Plan",
+    "editProfile": "Edit Profile"
+  }
+}
