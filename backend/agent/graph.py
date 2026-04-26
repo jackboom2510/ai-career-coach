@@ -166,6 +166,7 @@ async def run_agent(
     current_week: int = 1,
     user_id: str = "default",
     conversation_id: str = "default",
+    user_language: str = "Vietnamese",
 ) -> dict[str, Any]:
     initial_state: AgentState = {
         "messages": [HumanMessage(content=user_message)],
@@ -178,6 +179,7 @@ async def run_agent(
         "iteration_count": 0,
         "user_id": user_id,
         "conversation_id": conversation_id,
+        "user_language": user_language,
     }
 
     result = await agent_graph.ainvoke(initial_state)

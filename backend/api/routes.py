@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
     current_week: int = 1
     user_id: str = "default"
     conversation_id: str | None = None
+    user_language: str = "Vietnamese"
 
 
 class ChatResponse(BaseModel):
@@ -34,6 +35,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             current_week=request.current_week,
             user_id=request.user_id,
             conversation_id=conversation_id,
+            user_language=request.user_language,
         )
 
         messages = result.get("messages", [])

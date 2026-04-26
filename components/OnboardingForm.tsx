@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserProfile, TimeAvailability, LearningStyle, CVAnalysisResult } from '../types';
 import { Loader2, Sparkles, ChevronRight, Upload, FileText, X, CheckCircle2, AlertTriangle, ScanEye, Calendar } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { analyzeCV } from '../services/geminiService';
 
-interface Props {
-  onSubmit: (profile: UserProfile) => void;
-  isLoading: boolean;
-  initialData?: UserProfile;
-}
+const languages = [
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+];
 
 const OnboardingForm: React.FC<Props> = ({ onSubmit, isLoading, initialData }) => {
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<UserProfile>(
     initialData || {
       currentRole: '',
@@ -87,31 +89,41 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, isLoading, initialData }) =
   return (
     <div className="h-full flex flex-col">
       <div className="mb-6">
+        <div className="flex justify-end mb-2">
+          <button
+            type="button"
+            onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-600 transition-colors"
+          >
+            <Globe className="w-3 h-3" />
+            {i18n.language === 'vi' ? 'EN' : 'VI'}
+          </button>
+        </div>
         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-indigo-600" />
-          Career Coach AI
+          {t('onboarding.title')}
         </h2>
         <p className="text-slate-600 mt-2 text-sm">
-          Tell us about your goals, and we'll build a custom transition plan powered by Gemini 3 Pro.
+          {t('onboarding.subtitle')}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Current Role</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('onboarding.currentRole')}</label>
           <input
             type="text"
             name="currentRole"
             required
             value={formData.currentRole}
             onChange={handleChange}
-            placeholder="e.g. Marketing Manager, Junior Dev"
+            placeholder={t('onboarding.currentRolePlaceholder')}
             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Target Role</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('onboarding.targetRole')}</label>
           <input
             type="text"
             name="targetRole"
@@ -123,7 +135,7 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, isLoading, initialData }) =
                     runAnalysis(formData.cvText, formData.targetRole);
                 }
             }}
-            placeholder="e.g. AI Engineer, Data Scientist"
+            placeholder={t('onboarding.targetRolePlaceholder')}
             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
         </div>
