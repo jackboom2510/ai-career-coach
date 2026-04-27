@@ -1,0 +1,31 @@
+{
+  "name": "ai-career-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LangGraph-powered AI agent system for career coaching",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && uvicorn main:app --reload --port 8000",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && docker build -t ai-career-coach-backend .",
+    "start": "docker compose up -d",
+    "stop": "docker compose down",
+    "lint": "npm run lint:frontend",
+    "lint:frontend": "cd frontend && npm run lint || true",
+    "test": "npm run test:frontend",
+    "test:frontend": "cd frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20",
+    "python": ">=3.12"
+  }
+}
