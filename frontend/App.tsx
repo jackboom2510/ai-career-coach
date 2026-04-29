@@ -27,6 +27,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'roadmap' | 'weekly' | 'projects'>('roadmap');
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [progressStep, setProgressStep] = useState<number | undefined>(undefined);
+  const [aiThinkingMessage, setAiThinkingMessage] = useState<string>('');
   
   // Engagement State
   const [showConfetti, setShowConfetti] = useState(false);
@@ -178,9 +180,15 @@ const App: React.FC = () => {
     setError(null);
     setProfile(userProfile);
     setMobileMenuOpen(false);
+    setProgressStep(0);
+    setAiThinkingMessage('');
 
     try {
-      const plan = await generateStudyPlan(userProfile);
+      setProgressStep(1);
+      const plan = await generateStudyPlan(userProfile, (thought) => {
+        setAiThinkingMessage(thought);
+      });
+      setProgressStep(4);
       setStudyPlan(plan);
       setSelectedWeek(1);
       setActiveTab('roadmap');
@@ -189,6 +197,8 @@ const App: React.FC = () => {
       setError("Failed to generate plan. Please check your API key and try again.");
     } finally {
       setLoading(false);
+      setProgressStep(undefined);
+      setAiThinkingMessage('');
     }
   };
 
@@ -641,6 +651,8 @@ const App: React.FC = () => {
               targetRole={profile?.targetRole}
               timelineMonths={profile?.timelineMonths}
               hasCV={!!profile?.cvText}
+              progressStep={progressStep}
+              thinkingMessage={aiThinkingMessage}
             />
         )}
 

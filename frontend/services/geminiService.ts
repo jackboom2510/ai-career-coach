@@ -4,6 +4,33 @@ import { UserProfile, StudyPlan, RoadmapWeek, Task, CVAnalysisResult } from "../
 const apiKey = process.env.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
+export type ThinkingCallback = (thought: string) => void;
+
+const MAX_RETRIES = 3;
+const INITIAL_DELAY = 1000;
+
+async function withRetry<T>(fn: () => Promise<T>, context: string): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      
+      if (status && (status === 503 || status === 429 || status === 500 || status >= 500)) {
+        const delay = INITIAL_DELAY * Math.pow(2, attempt - 1);
+        console.warn(`Retry ${context}: attempt ${attempt}/${MAX_RETRIES} failed (${status}), waiting ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
 // Helper to define task schema separately so we can reuse or nest it
 const taskSchema = { 
   type: Type.OBJECT,
@@ -102,22 +129,25 @@ export const analyzeCV = async (cvText: string, targetRole: string): Promise<CVA
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            detectedSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-            missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-            gapAnalysisSummary: { type: Type.STRING }
-          },
-          required: ["detectedSkills", "missingSkills", "gapAnalysisSummary"]
+    console.log("DEBUG: analyzeCV prompt:", prompt);
+    const response = await withRetry(async () => {
+      return await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              detectedSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+              missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+              gapAnalysisSummary: { type: Type.STRING }
+            },
+            required: ["detectedSkills", "missingSkills", "gapAnalysisSummary"]
+          }
         }
-      }
-    });
+      });
+    }, "CV Analysis");
 
     const text = response.text;
     if (!text) throw new Error("No response from Gemini CV analysis.");
@@ -133,7 +163,10 @@ export const analyzeCV = async (cvText: string, targetRole: string): Promise<CVA
   }
 };
 
-export const generateStudyPlan = async (profile: UserProfile): Promise<StudyPlan> => {
+export const generateStudyPlan = async (
+  profile: UserProfile,
+  onThinking?: ThinkingCallback
+): Promise<StudyPlan> => {
   const model = "gemini-3-pro-preview";
 
   let prompt = `
@@ -186,36 +219,62 @@ export const generateStudyPlan = async (profile: UserProfile): Promise<StudyPlan
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: fullPlanSchema,
-        thinkingConfig: { thinkingBudget: 1024 },
-      },
-    });
+    console.log("DEBUG: generateStudyPlan prompt:", {
+			model,
+			contents: prompt,
+			config: {
+				responseMimeType: "application/json",
+				responseSchema: fullPlanSchema,
+				thinkingConfig: { thinkingBudget: 1024 },
+			},
+		});
+    onThinking?.("Analyzing your profile and researching job market trends...");
 
-    const text = response.text;
-    if (!text) throw new Error("No response from Gemini.");
-    
-    const rawPlan = JSON.parse(text) as RawStudyPlan;
-    
-    // Transform tasks to include completed state
-    const roadmapWithObjects = rawPlan.roadmap.map(week => ({
-      ...week,
-      tasks: week.tasks.map(t => ({ 
-          description: t.description, 
-          estimatedHours: t.estimatedHours,
-          difficulty: t.difficulty,
-          completed: false 
-      }))
-    }));
+    const stream = await withRetry(async () => {
+      return await ai.models.generateContentStream({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: fullPlanSchema,
+          thinkingConfig: { thinkingBudget: 1024 },
+        },
+      });
+    }, "Generate Study Plan");
 
-    return {
-      ...rawPlan,
-      roadmap: roadmapWithObjects
-    };
+    let fullText = "";
+    for await (const chunk of stream) {
+      const text = chunk.text;
+      if (text) {
+        fullText += text;
+        onThinking?.("Processing and generating your personalized roadmap...");
+      }
+    }
+
+    if (!fullText) throw new Error("No response from Gemini.");
+    
+    try {
+      const rawPlan = JSON.parse(fullText) as RawStudyPlan;
+
+      // Transform tasks to include completed state
+      const roadmapWithObjects = rawPlan.roadmap.map(week => ({
+        ...week,
+        tasks: week.tasks.map(t => ({ 
+            description: t.description, 
+            estimatedHours: t.estimatedHours,
+            difficulty: t.difficulty,
+            completed: false 
+        }))
+      }));
+
+      return {
+        ...rawPlan,
+        roadmap: roadmapWithObjects
+      };
+    } catch (parseError) {
+      console.error("Error parsing Gemini study plan response:", parseError, fullText.slice(0, 1200));
+      throw parseError;
+    }
 
   } catch (error) {
     console.error("Error generating study plan:", error);
@@ -251,14 +310,17 @@ export const regenerateWeekPlan = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: roadmapWeekSchema,
-      },
-    });
+    console.log("DEBUG: regenerateWeekPlan prompt:", prompt);
+    const response = await withRetry(async () => {
+      return await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: roadmapWeekSchema,
+        },
+      });
+    }, "Regenerate Week Plan");
 
     const text = response.text;
     if (!text) throw new Error("No response from Gemini.");
@@ -308,7 +370,9 @@ export const chatWithCoach = async (
             history: history
         });
 
-        const result = await chatSession.sendMessage({ message });
+        const result = await withRetry(async () => {
+          return await chatSession.sendMessage({ message });
+        }, "Chat with Coach");
         return result.text || "I'm having trouble thinking of a response right now.";
     } catch (e) {
         console.error("Chat error", e);

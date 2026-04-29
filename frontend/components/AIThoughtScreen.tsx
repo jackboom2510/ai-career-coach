@@ -6,7 +6,8 @@ interface AIThoughtScreenProps {
   targetRole?: string;
   timelineMonths?: number;
   hasCV?: boolean;
-  currentStep?: string;
+  progressStep?: number;
+  thinkingMessage?: string;
 }
 
 const thoughtSteps = [
@@ -21,7 +22,9 @@ const AIThoughtScreen: React.FC<AIThoughtScreenProps> = ({
   isLoading, 
   targetRole, 
   timelineMonths = 6, 
-  hasCV = false 
+  hasCV = false,
+  progressStep,
+  thinkingMessage
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [animatedSteps, setAnimatedSteps] = useState<number[]>([]);
@@ -30,6 +33,18 @@ const AIThoughtScreen: React.FC<AIThoughtScreenProps> = ({
     if (!isLoading) {
       setCurrentStepIndex(0);
       setAnimatedSteps([]);
+      return;
+    }
+
+    if (progressStep !== undefined) {
+      setCurrentStepIndex(progressStep);
+      setAnimatedSteps(prev => {
+        const newSteps = [...prev];
+        for (let i = 0; i <= progressStep; i++) {
+          if (!newSteps.includes(i)) newSteps.push(i);
+        }
+        return newSteps;
+      });
       return;
     }
 
@@ -45,7 +60,7 @@ const AIThoughtScreen: React.FC<AIThoughtScreenProps> = ({
     };
 
     animateSteps();
-  }, [isLoading]);
+  }, [isLoading, progressStep]);
 
   const currentStep = thoughtSteps[currentStepIndex];
   const CurrentIcon = currentStep?.icon || Loader2;
@@ -73,6 +88,11 @@ const AIThoughtScreen: React.FC<AIThoughtScreenProps> = ({
           <Zap className="w-6 h-6 text-yellow-500" />
           AI is thinking...
         </h3>
+        {thinkingMessage && (
+          <div className="max-w-md text-center px-4 py-2 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <p className="text-sm text-indigo-700 italic">"{thinkingMessage}"</p>
+          </div>
+        )}
         <p className="text-slate-500 mb-8">
           Building your {targetRole || 'career'} roadmap
         </p>
