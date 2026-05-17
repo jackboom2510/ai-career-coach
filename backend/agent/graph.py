@@ -57,16 +57,23 @@ def reasoning_node(state: AgentState) -> dict[str, Any]:
     conversation_id = state.get("conversation_id", "default")
     
     context_parts = []
-    if profile:
+    if isinstance(profile, dict):
         context_parts.append(f"Target Role: {profile.get('target_role', 'N/A')}")
         context_parts.append(f"Current Role: {profile.get('current_role', 'N/A')}")
         context_parts.append(f"Timeline: {profile.get('timeline_months', 0)} months")
     
     if roadmap:
-        week = next((w for w in roadmap if w.get("week_number") == current_week), None)
+        week = next(
+            (w for w in roadmap if isinstance(w, dict) and w.get("week_number") == current_week),
+            None,
+        )
         if week:
             context_parts.append(f"Current Week {current_week}: {week.get('theme', 'N/A')}")
-            tasks = [t["description"] for t in week.get("tasks", []) if not t.get("completed", False)]
+            tasks = [
+                t["description"]
+                for t in week.get("tasks", [])
+                if isinstance(t, dict) and not t.get("completed", False)
+            ]
             if tasks:
                 context_parts.append(f"Remaining tasks: {', '.join(tasks[:3])}")
     

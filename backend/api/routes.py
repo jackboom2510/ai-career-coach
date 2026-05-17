@@ -7,10 +7,33 @@ import uuid
 router = APIRouter()
 
 
+def extract_message_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts = []
+
+        for item in content:
+            if isinstance(item, dict):
+                if item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+
+            elif hasattr(item, "text"):
+                parts.append(item.text)
+
+            else:
+                parts.append(str(item))
+
+        return "\n".join(parts)
+
+    return str(content)
+
+
 class ChatRequest(BaseModel):
     message: str
-    user_profile: dict | None = None
-    roadmap_state: list | None = None
+    user_profile: dict[str, Any] | None = None
+    roadmap_state: list[dict[str, Any]] | None = None
     current_week: int = 1
     user_id: str = "default"
     conversation_id: str | None = None
@@ -27,7 +50,7 @@ class ChatResponse(BaseModel):
 async def chat(request: ChatRequest) -> ChatResponse:
     try:
         conversation_id = request.conversation_id or str(uuid.uuid4())
-        
+
         result = await run_agent(
             user_message=request.message,
             user_profile=request.user_profile,
@@ -39,7 +62,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
 
         messages = result.get("messages", [])
-        last_message = messages[-1].content if messages else "No response"
+        last_message = (
+            extract_message_content(messages[-1].content) if messages else "No response"
+        )
 
         tools_called = []
         for msg in messages:
