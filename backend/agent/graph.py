@@ -49,22 +49,26 @@ async def get_memory_context(conversation_id: str, user_id: str, current_message
 
 def reasoning_node(state: AgentState) -> dict[str, Any]:
     messages = state.get("messages", [])
-    
+
     profile = state.get("user_profile")
     roadmap = state.get("roadmap_state")
     current_week = state.get("current_week", 1)
     user_id = state.get("user_id", "default")
     conversation_id = state.get("conversation_id", "default")
-    
+
     context_parts = []
     if isinstance(profile, dict):
         context_parts.append(f"Target Role: {profile.get('target_role', 'N/A')}")
         context_parts.append(f"Current Role: {profile.get('current_role', 'N/A')}")
         context_parts.append(f"Timeline: {profile.get('timeline_months', 0)} months")
-    
+
     if roadmap:
         week = next(
-            (w for w in roadmap if isinstance(w, dict) and w.get("week_number") == current_week),
+            (
+                w
+                for w in roadmap
+                if isinstance(w, dict) and w.get("weekNumber") == current_week
+            ),
             None,
         )
         if week:
@@ -76,19 +80,19 @@ def reasoning_node(state: AgentState) -> dict[str, Any]:
             ]
             if tasks:
                 context_parts.append(f"Remaining tasks: {', '.join(tasks[:3])}")
-    
+
     context = "\n".join(context_parts) if context_parts else ""
-    
+
     current_msg = messages[-1].content if messages else ""
     memory_context = ""
-    
+
     import asyncio
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-    
+
     if user_id and user_id != "default":
         try:
             memory_context = loop.run_until_complete(
@@ -96,13 +100,13 @@ def reasoning_node(state: AgentState) -> dict[str, Any]:
             )
         except Exception:
             pass
-    
+
     user_language = state.get("user_language", "Vietnamese")
-    
+
     language_instruction = "Respond in Vietnamese."
     if user_language == "English" or user_language == "en":
         language_instruction = "Respond in English."
-    
+
     system_msg = HumanMessage(content=f"""You are an expert AI Career Coach agent. 
 
 {language_instruction}
@@ -127,9 +131,9 @@ Be encouraging, specific, and reference their progress. Use tools when appropria
     if llm_with_tools is None:
         return {"messages": [AIMessage(content="Agent not configured. Please set GOOGLE_API_KEY.")]}
     response = llm_with_tools.invoke([system_msg] + messages)
-    
+
     iteration_count = state.get("iteration_count", 0) + 1
-    
+
     return {
         "messages": [response],
         "iteration_count": iteration_count,
@@ -152,14 +156,7 @@ workflow.add_conditional_edges(
     },
 )
 
-workflow.add_conditional_edges(
-    "tools",
-    shouldContinue,
-    {
-        "tools": "tools",
-        "__end__": END,
-    },
-)
+workflow.add_edge("tools", "reasoning")
 
 graph = workflow.compile()
 
