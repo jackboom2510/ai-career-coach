@@ -1,0 +1,52 @@
+DEVOPS ENGINEER
+Hanoi - VietNam | Email: thai.nguyentlhn@gmail.com
+
+SUMMARY
+As a responsible and passionate student at PTIT, I am proactive in seeking new knowledge and learning opportunities. With hands-on experience in both a university lab and a company environment, I am always open to feedback and continuous improvement. I strive to develop valuable skills and knowledge, aiming to become a Senior Devops Engineer in the future.
+
+ACHIEVEMENTS
+• Toeic 750/900
+• Top 6 P-Innovation — Innovation & Creative Product Contest for IT Students
+• Oracle Certified Associate (OCA), Java SE 8 Programmer
+• Top 12 VPBank Cloud Quest 2025
+• AWS Cloud Quest: Cloud Practitioner
+
+WORK EXPERIENCE
+
+Software Engineer
+May 2025 - Feb 2026
+• Developed backend services for the telecom billing platform (customer lifecycle, prepaid/postpaid, payment collection) using Java SE 8, Struts 1/2, and SOAP.
+• Built payment orchestration modules with Spring Boot, Spring Data JPA, Redis, Kafka; implemented multi-gateway routing, retry logic, and Docker deployment.
+• Participated in Agile sprints, conducted unit and integration tests.
+
+Software Engineer
+Nov 2024 - Now
+• Configured SSL/TLS with Let's Encrypt, Nginx and custom domains on-premises, auto-renewal via cron for production traffic.
+• Developed backend endpoints and integrated AI-driven user-feedback modules and implemented CI/CD pipeline setup and deployment automation reducing deployment time from 1 hour to 10 minutes (80% improvement).
+• Orchestrated infrastructure provisioning, including the deployment and configuration of database clusters, microservices, and Nginx reverse proxies.
+• Managed Linux servers with Least Privilege access control and orchestrated applications as Systemd services to ensure high availability and automated recovery upon system restarts.
+
+PROJECT
+
+Cloud-Native FoodOrdering Project
+Summary: A scalable food ordering platform built on AWS, designed for high-availability and real-time order processing. The project leverages a fully automated infrastructure and CI/CD pipelines to ensure seamless performance during peak traffic while maintaining high security and stability standards.
+• Architected a High-Availability environment on AWS including EC2 ASG, ELB, Route 53, S3, and ECR using Terraform; optimized data layers with RDS (Master-Replica), Memcached, and Message Queue to maintain 99.9% system uptime.
+• Engineered zero-touch CI/CD pipeline using Jenkins, SonarQube, ECR, EventBridge, Lambda, and ASG Instance Refresh, fully replacing EC2 instances in under 15 minutes.
+• Integrated automated security testing and static analysis with SonarQube into the CI pipeline, ensuring 100% of releases meet >80% code coverage and zero critical vulnerabilities.
+• Deployed Prometheus and Grafana stack for centralized monitoring; configured intelligent alerting to reduce Mean Time to Recovery (MTTR) to under 15 minutes.
+
+TECHNICAL SKILLS
+• Programming Languages: Java, Python, Bash
+• CICD: Jenkins, Gitlab, Github Actions
+• Cloud: AWS (EC2, RDS, S3, Lambda, ECR, ECS, IAM, VPC)
+• Others: Networking Fundamentals, Jira, MinIO, Vagrant
+• IaC: Terraform
+• Container: Docker
+• Monitoring& Alerting: Prometheus, Grafana
+• Version Controls: Git, Bitbucket
+
+EDUCATION
+
+Computer Science
+Sep 2023 - Now
+Post and Telecommunication Institute of Technology (PTIT)

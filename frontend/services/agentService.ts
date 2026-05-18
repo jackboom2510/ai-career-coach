@@ -30,8 +30,28 @@ export interface AgentHealth {
   tools_count: number;
 }
 
+type GetTokenFn = () => Promise<string | null>;
+
 class AgentService {
   private conversationId: string | null = null;
+  private getToken: GetTokenFn | null = null;
+
+  setTokenGetter(getToken: GetTokenFn) {
+    this.getToken = getToken;
+  }
+
+  private async getHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.getToken) {
+      const token = await this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    return headers;
+  }
 
   async checkHealth(): Promise<AgentHealth | null> {
     try {
@@ -52,9 +72,7 @@ class AgentService {
 
     const response = await fetch(`${API_BASE}/agent/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: await this.getHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -76,9 +94,7 @@ class AgentService {
 
     const response = await fetch(`${API_BASE}/agent/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: await this.getHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -115,9 +131,7 @@ class AgentService {
     try {
       const response = await fetch(`${API_BASE}/agent/reset`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await this.getHeaders(),
         body: JSON.stringify({ conversation_id: conversationId }),
       });
       const data = await response.json();
