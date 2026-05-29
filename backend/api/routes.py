@@ -1,9 +1,10 @@
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Any
 from agent.graph import run_agent
 import uuid
-
+from .push_utils import send_push
 router = APIRouter()
 
 
@@ -44,7 +45,36 @@ class ChatResponse(BaseModel):
     response: str
     conversation_id: str
     tools_called: list[dict] | None = None
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: dict[str, str]
+    user_id: str | None = None
 
+subscriptions: list[PushSubscription] = []
+@router.get("/push/public_key")
+async def get_vapid_public_key():
+    return {"publicKey": os.getenv("VAPID_PUBLIC_KEY", "")}
+
+
+@router.post("/push/subscribe")
+async def push_subscribe(subscription: PushSubscription):
+    # Lưu vào bộ nhớ tạm. Tốt hơn nên lưu DB hoặc Supabase trong production.
+    subscriptions.append(subscription)
+    return {"success": True}
+
+
+@router.post("/push/send")
+async def push_send(user_id: str | None = None):
+    targets = [s for s in subscriptions if s.user_id == user_id] if user_id else subscriptions
+    results = []
+    for sub in targets:
+        ok = send_push(
+            {"endpoint": sub.endpoint, "keys": sub.keys},
+            "AI Career Coach",
+            "Bạn có lịch học mới hôm nay. Quay lại app ngay!"
+        )
+        results.append({"endpoint": sub.endpoint, "sent": ok})
+    return {"results": results}
 
 @router.post("/agent/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:

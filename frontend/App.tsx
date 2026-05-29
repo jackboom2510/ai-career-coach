@@ -15,6 +15,19 @@ import { updateStreak, checkNewBadges, calculateTimeEstimation } from './service
 import { UserProfile, StudyPlan, UnlockedBadge } from './types';
 import { Map, Calendar, Briefcase, AlertCircle, Menu, X, Edit3, Trash2, RefreshCcw, CheckCircle2, Download, Copy, FileText, ChevronDown, Flame, Trophy } from 'lucide-react';
 import { jsPDF } from "jspdf";
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const STORAGE_KEY = 'ai-career-coach-v1';
 
@@ -43,7 +56,46 @@ const App: React.FC = () => {
   // Export Menu State
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const registerPushNotifications = async () => {
+    try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        showToast("Trình duyệt không hỗ trợ thông báo web push.");
+        return;
+        }
 
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+        showToast("Bạn cần cho phép thông báo để nhận nhắc học.");
+        return;
+        }
+
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+
+        const response = await fetch(`${API_BASE_URL}/push/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            keys: subscription.toJSON().keys,
+            user_id: profile?.email || "anonymous",
+        }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+        showToast("Nhắc học đã được kích hoạt thành công!");
+        } else {
+        showToast("Đăng ký thông báo thất bại.");
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Không thể đăng ký thông báo.");
+    }
+    };  
   // Close export menu on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -710,6 +762,12 @@ const App: React.FC = () => {
                         >
                             <Briefcase className="w-4 h-4" />
                             Project Ideas
+                        </button>
+                        <button
+                            onClick={registerPushNotifications}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                            >
+                            Bật nhắc học
                         </button>
                     </div>
 

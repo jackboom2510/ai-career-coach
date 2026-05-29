@@ -13,3 +13,4 @@ sse_starlette>=2.0.0
 tavily-python>=0.3.0
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
+pywebpush>=1.13.0
