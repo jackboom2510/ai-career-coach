@@ -6,8 +6,8 @@ VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIMS = {"sub": os.getenv("VAPID_CLAIMS", "mailto:hello@example.com")}
 
-def send_push(subscription_info: dict, title: str, body: str):
-    payload = json.dumps({"title": title, "body": body})
+def send_push(subscription_info: dict, payload_data: dict):
+    payload = json.dumps(payload_data)
     try:
         webpush(
             subscription_info=subscription_info,

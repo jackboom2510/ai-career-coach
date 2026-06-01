@@ -118,7 +118,7 @@ interface RawStudyPlan extends Omit<StudyPlan, 'roadmap'> {
 }
 
 export const analyzeCV = async (cvText: string, targetRole: string): Promise<CVAnalysisResult> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-flash";
   
   const prompt = `
     Analyze the following CV text against the target role of "${targetRole}".
@@ -167,7 +167,7 @@ export const generateStudyPlan = async (
   profile: UserProfile,
   onThinking?: ThinkingCallback
 ): Promise<StudyPlan> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-flash";
 
   let prompt = `
     Act as a world-class technical career coach.
@@ -220,14 +220,14 @@ export const generateStudyPlan = async (
 
   try {
     console.log("DEBUG: generateStudyPlan prompt:", {
-			model,
-			contents: prompt,
-			config: {
-				responseMimeType: "application/json",
-				responseSchema: fullPlanSchema,
-				thinkingConfig: { thinkingBudget: 1024 },
-			},
-		});
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: fullPlanSchema,
+        thinkingConfig: { thinkingBudget: 1024 },
+      },
+    });
     onThinking?.("Analyzing your profile and researching job market trends...");
 
     const stream = await withRetry(async () => {
@@ -287,7 +287,7 @@ export const regenerateWeekPlan = async (
   currentPlan: RoadmapWeek,
   profile: UserProfile
 ): Promise<RoadmapWeek> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-flash";
 
   const prompt = `
     The user needs to regenerate the plan for **Week ${weekNumber}** of their study roadmap.
@@ -348,7 +348,7 @@ export const chatWithCoach = async (
     context: string,
     history: {role: string, parts: {text: string}[]}[] = []
 ): Promise<string> => {
-    const model = "gemini-3-pro-preview";
+    const model = "gemini-2.5-flash";
     
     const systemInstruction = `
         You are an encouraging, expert AI Career Coach. 
@@ -378,4 +378,57 @@ export const chatWithCoach = async (
         console.error("Chat error", e);
         return "Sorry, I couldn't connect to the coach right now. Please try again.";
     }
+};
+
+
+export const generateQuizForWeek = async (theme: string): Promise<any[]> => {
+  // Dùng 1.5-flash cho task này để đảm bảo tốc độ sinh Quiz < 2 giây
+  const model = "gemini-2.5-flash"; 
+  const prompt = `Bạn là chuyên gia khảo thí khắt khe. Hệ thống đang cần kiểm tra người dùng xem họ có thực sự đã học xong chủ đề: "${theme}" hay chưa.
+  Hãy tạo đúng 3 câu hỏi trắc nghiệm (độ khó vừa phải). Mỗi câu có 4 đáp án.`;
+
+  try {
+    console.log(`DEBUG: Đang gọi Gemini tạo Quiz cho chủ đề: ${theme}`);
+    
+    const response = await withRetry(async () => {
+      return await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          // Dùng responseSchema để ép Gemini phải trả về đúng cấu trúc Mảng Object
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                question: { type: Type.STRING },
+                options: { 
+                  type: Type.ARRAY, 
+                  items: { type: Type.STRING },
+                  description: "Chứa chính xác 4 lựa chọn (A, B, C, D)"
+                },
+                correctIndex: { type: Type.INTEGER, description: "Vị trí của đáp án đúng (từ 0 đến 3)" }
+              },
+              required: ["question", "options", "correctIndex"]
+            }
+          }
+        }
+      });
+    }, "Generate AI Quiz");
+
+    const text = response.text;
+    if (!text) throw new Error("Không nhận được phản hồi từ Gemini.");
+    
+    return JSON.parse(text);
+
+  } catch (error) {
+    console.error("Lỗi khi tạo Quiz bằng Gemini:", error);
+    // Kịch bản Fallback: Trả về câu hỏi mặc định nếu AI sập mạng, không làm kẹt luồng học của user
+    return [
+      { question: `Bạn đã thực sự nắm vững kiến thức về ${theme}?`, options: ["Chắc chắn", "Hơi hơi", "Chưa rõ", "Bỏ qua"], correctIndex: 0 },
+      { question: "Để học tiếp, bạn cần tinh thần thế nào?", options: ["Quyết tâm", "Lười biếng", "Bỏ cuộc", "Chán nản"], correctIndex: 0 },
+      { question: "Mục tiêu tiếp theo của bạn là gì?", options: ["Hoàn thành lộ trình", "Bỏ dở", "Đi ngủ", "Chơi game"], correctIndex: 0 }
+    ];
+  }
 };
