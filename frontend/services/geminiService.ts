@@ -118,7 +118,7 @@ interface RawStudyPlan extends Omit<StudyPlan, 'roadmap'> {
 }
 
 export const analyzeCV = async (cvText: string, targetRole: string): Promise<CVAnalysisResult> => {
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3.1-pro-preview";
   
   const prompt = `
     Analyze the following CV text against the target role of "${targetRole}".
@@ -167,7 +167,7 @@ export const generateStudyPlan = async (
   profile: UserProfile,
   onThinking?: ThinkingCallback
 ): Promise<StudyPlan> => {
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3.1-pro-preview";
 
   let prompt = `
     Act as a world-class technical career coach.
@@ -287,7 +287,7 @@ export const regenerateWeekPlan = async (
   currentPlan: RoadmapWeek,
   profile: UserProfile
 ): Promise<RoadmapWeek> => {
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3.1-pro-preview";
 
   const prompt = `
     The user needs to regenerate the plan for **Week ${weekNumber}** of their study roadmap.
@@ -348,7 +348,7 @@ export const chatWithCoach = async (
     context: string,
     history: {role: string, parts: {text: string}[]}[] = []
 ): Promise<string> => {
-    const model = "gemini-2.5-flash";
+    const model = "gemini-3.1-pro-preview";
     
     const systemInstruction = `
         You are an encouraging, expert AI Career Coach. 
@@ -381,9 +381,53 @@ export const chatWithCoach = async (
 };
 
 
+export const chatWithCoachBackend = async (
+    message: string,
+    userProfile?: { target_role?: string; current_role?: string; timeline_months?: number },
+    roadmapState?: any,
+    currentWeek?: number,
+    userId?: string,
+    conversationId?: string,
+    userLanguage?: string
+): Promise<{ response: string; conversation_id: string; tools_called?: any[] }> => {
+    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    
+    try {
+        const payload = {
+            message,
+            user_profile: userProfile || null,
+            roadmap_state: roadmapState || null,
+            current_week: currentWeek || 1,
+            user_id: userId || "default",
+            conversation_id: conversationId || null,
+            user_language: userLanguage || "Vietnamese"
+        };
+
+        const response = await fetch(`${baseURL}/agent/chat`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Backend error");
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Backend chat error:", error);
+        throw error;
+    }
+};
+
+
+
 export const generateQuizForWeek = async (theme: string): Promise<any[]> => {
   // Dùng 1.5-flash cho task này để đảm bảo tốc độ sinh Quiz < 2 giây
-  const model = "gemini-2.5-flash"; 
+  const model = "gemini-3.1-pro-preview"; 
   const prompt = `Bạn là chuyên gia khảo thí khắt khe. Hệ thống đang cần kiểm tra người dùng xem họ có thực sự đã học xong chủ đề: "${theme}" hay chưa.
   Hãy tạo đúng 3 câu hỏi trắc nghiệm (độ khó vừa phải). Mỗi câu có 4 đáp án.`;
 

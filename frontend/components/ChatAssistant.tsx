@@ -1,20 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
-import { chatWithCoach } from '../services/geminiService';
+import { chatWithCoachBackend } from '../services/geminiService';
 import { ChatMessage, RoadmapWeek } from '../types';
 
 interface Props {
   currentWeek?: RoadmapWeek;
   targetRole?: string;
+  userProfile?: { target_role?: string; current_role?: string; timeline_months?: number };
+  userId?: string;
+  userLanguage?: string;
 }
 
-const ChatAssistant: React.FC<Props> = ({ currentWeek, targetRole }) => {
+const ChatAssistant: React.FC<Props> = ({ 
+  currentWeek, 
+  targetRole, 
+  userProfile,
+  userId = "default",
+  userLanguage = "Vietnamese"
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'model', text: 'Hi! I\'m your AI coach. Stuck on a task or need an explanation? Ask away!' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -33,22 +43,21 @@ const ChatAssistant: React.FC<Props> = ({ currentWeek, targetRole }) => {
     setInputValue('');
     setIsTyping(true);
 
-    const context = `
-      Target Role: ${targetRole || 'Tech Role'}
-      Current Week: ${currentWeek?.weekNumber || 'General'} - ${currentWeek?.theme || ''}
-      Tasks: ${currentWeek?.tasks.map(t => t.description).join(', ') || 'No active tasks'}
-    `;
-
-    // Convert local messages to Gemini history format
-    const history = messages.map(m => ({
-        role: m.role,
-        parts: [{ text: m.text }]
-    }));
-
     try {
-      const responseText = await chatWithCoach(userMsg.text, context, history);
-      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+      const response = await chatWithCoachBackend(
+        userMsg.text,
+        userProfile || { target_role: targetRole, current_role: 'Not specified', timeline_months: 3 },
+        currentWeek ? [currentWeek] : null,
+        currentWeek?.weekNumber || 1,
+        userId,
+        conversationId || undefined,
+        userLanguage
+      );
+
+      setConversationId(response.conversation_id);
+      setMessages(prev => [...prev, { role: 'model', text: response.response }]);
     } catch (e) {
+      console.error("Chat error:", e);
       setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting right now." }]);
     } finally {
       setIsTyping(false);

@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from agent.state import AgentState
-from agent.tools import TOOLS
+from agent.tools import TOOLS, RESEARCH_TOOLS, COACHING_TOOLS, MEMORY_TOOLS
 
 _api_key = os.getenv("GOOGLE_API_KEY", "")
 _llm = None
@@ -16,7 +16,7 @@ _llm_with_tools = None
 def get_llm():
     global _llm, _llm_with_tools
     if _llm is None:
-        _llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7, google_api_key=_api_key)
+        _llm = ChatGoogleGenerativeAI(model="gemini-3.1-pro-preview", temperature=0.7, google_api_key=_api_key)
         _llm_with_tools = _llm.bind_tools(TOOLS)
     return _llm, _llm_with_tools
 
@@ -47,6 +47,22 @@ async def get_memory_context(conversation_id: str, user_id: str, current_message
     return ""
 
 
+def select_agent(state: AgentState) -> dict[str, Any]:
+    messages = state.get("messages", [])
+    if not messages:
+        return {"selected_agent": "coaching"}
+
+    last_message = messages[-1].content.lower()
+    if any(keyword in last_message for keyword in ["salary", "job market", "pay", "hiring", "demand", "job listing", "remote"]):
+        selected = "research"
+    elif any(keyword in last_message for keyword in ["memory", "remember", "previous", "past", "history", "learned", "saved"]):
+        selected = "memory"
+    else:
+        selected = "coaching"
+
+    return {"selected_agent": selected}
+
+
 def reasoning_node(state: AgentState) -> dict[str, Any]:
     messages = state.get("messages", [])
 
@@ -55,6 +71,7 @@ def reasoning_node(state: AgentState) -> dict[str, Any]:
     current_week = state.get("current_week", 1)
     user_id = state.get("user_id", "default")
     conversation_id = state.get("conversation_id", "default")
+    selected_agent = state.get("selected_agent", "coaching")
 
     context_parts = []
     if isinstance(profile, dict):
@@ -102,30 +119,43 @@ def reasoning_node(state: AgentState) -> dict[str, Any]:
             pass
 
     user_language = state.get("user_language", "Vietnamese")
-
     language_instruction = "Respond in Vietnamese."
     if user_language == "English" or user_language == "en":
         language_instruction = "Respond in English."
+
+    agent_labels = {
+        "research": "Research Agent",
+        "coaching": "Coaching Agent",
+        "memory": "Memory Agent",
+    }
+
+    tool_map = {
+        "research": RESEARCH_TOOLS,
+        "coaching": COACHING_TOOLS,
+        "memory": MEMORY_TOOLS,
+    }
+
+    permitted_tools = tool_map.get(selected_agent, COACHING_TOOLS)
+    tool_names = ", ".join([tool.name for tool in permitted_tools])
+    agent_description = {
+        "research": "You are a research-focused agent who finds up-to-date job market and salary information.",
+        "coaching": "You are a coaching-focused agent who helps the user learn, make progress, and choose helpful resources.",
+        "memory": "You are a memory-focused agent who retrieves relevant prior conversations and records important learning from the user.",
+    }[selected_agent]
 
     system_msg = HumanMessage(content=f"""You are an expert AI Career Coach agent. 
 
 {language_instruction}
 
+Agent role: {agent_labels.get(selected_agent)}
+{agent_description}
+
 Context about the user:
 {context}{memory_context}
 
-Available tools:
-- search_web(query): Search the web for current information
-- search_job_listings(skill, location): Search job listings for a skill
-- get_salary_insights(role): Get salary information for a role
-- validate_resource(url, topic): Validate a learning resource
-- calculate_pace_adjustment(total_tasks, completed_tasks, weeks_elapsed, timeline_months): Calculate learning pace
-- suggest_topic_resources(topic, difficulty): Get resource suggestions
-- retrieve_memories(query, user_id): Recall past conversations and learnings
-- get_conversation_context(conversation_id): Get conversation history
-- store_learning(user_id, learning, context): Store important learnings
+Allowed tools for this agent: {tool_names}
 
-Be encouraging, specific, and reference their progress. Use tools when appropriate for research or validation.""")
+Use the allowed tools when they help you answer the user's request. Be encouraging, specific, and reference their progress.""")
 
     _, llm_with_tools = get_llm()
     if llm_with_tools is None:
@@ -137,16 +167,18 @@ Be encouraging, specific, and reference their progress. Use tools when appropria
     return {
         "messages": [response],
         "iteration_count": iteration_count,
+        "selected_agent": selected_agent,
     }
 
 
 workflow = StateGraph(AgentState)
 
+workflow.add_node("select_agent", select_agent)
 workflow.add_node("reasoning", reasoning_node)
 workflow.add_node("tools", ToolNode(TOOLS))
 
-workflow.set_entry_point("reasoning")
-
+workflow.set_entry_point("select_agent")
+workflow.add_edge("select_agent", "reasoning")
 workflow.add_conditional_edges(
     "reasoning",
     shouldContinue,
@@ -155,7 +187,6 @@ workflow.add_conditional_edges(
         "__end__": END,
     },
 )
-
 workflow.add_edge("tools", "reasoning")
 
 graph = workflow.compile()

@@ -60,7 +60,7 @@ def search_job_listings(skill: str, location: str = "remote") -> str:
     companies are hiring for.
     
     Args:
-        skill: The skill or job title to search for
+        skill: The skill or job title from django.utils.translation import ugettext_lazy as _ search for
         location: Job location (default: "remote", or specify city/country)
         
     Returns:

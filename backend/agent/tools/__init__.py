@@ -51,14 +51,22 @@ Status: {pace_status.upper()}
 Recommendation: {'Consider extending your timeline slightly' if pace_status == 'behind' else 'Continue at your current pace' if pace_status == 'on_track' else 'You may finish early - consider advancing to next topics'}"""
 
 
-TOOLS = [
+RESEARCH_TOOLS = [
     search_web,
     search_job_listings,
     get_salary_insights,
+]
+
+COACHING_TOOLS = [
     validate_resource,
     calculate_pace_adjustment,
     suggest_topic_resources,
+]
+
+MEMORY_TOOLS = [
     retrieve_memories,
     get_conversation_context,
     store_learning,
 ]
+
+TOOLS = RESEARCH_TOOLS + COACHING_TOOLS + MEMORY_TOOLS

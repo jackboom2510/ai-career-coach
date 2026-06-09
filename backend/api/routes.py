@@ -103,7 +103,7 @@ def call_gemini_for_notification(scenario_prompt: str):
     try:
         # Sử dụng mô hình gemini-1.5-flash để đảm bảo tải trọng băng thông cực kỳ ổn định
         response = client.models.generate_content(
-            model='gemini/gemini-2.5-flash',
+            model='gemini/gemini-3.1-pro-preview',
             contents=base_prompt,
         )
         
