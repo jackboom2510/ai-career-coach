@@ -118,7 +118,7 @@ interface RawStudyPlan extends Omit<StudyPlan, 'roadmap'> {
 }
 
 export const analyzeCV = async (cvText: string, targetRole: string): Promise<CVAnalysisResult> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-pro";
   
   const prompt = `
     Analyze the following CV text against the target role of "${targetRole}".
@@ -167,7 +167,7 @@ export const generateStudyPlan = async (
   profile: UserProfile,
   onThinking?: ThinkingCallback
 ): Promise<StudyPlan> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-pro";
 
   let prompt = `
     Act as a world-class technical career coach.
@@ -287,7 +287,7 @@ export const regenerateWeekPlan = async (
   currentPlan: RoadmapWeek,
   profile: UserProfile
 ): Promise<RoadmapWeek> => {
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-pro";
 
   const prompt = `
     The user needs to regenerate the plan for **Week ${weekNumber}** of their study roadmap.
@@ -348,7 +348,7 @@ export const chatWithCoach = async (
     context: string,
     history: {role: string, parts: {text: string}[]}[] = []
 ): Promise<string> => {
-    const model = "gemini-3-pro-preview";
+    const model = "gemini-2.5-pro";
     
     const systemInstruction = `
         You are an encouraging, expert AI Career Coach. 
