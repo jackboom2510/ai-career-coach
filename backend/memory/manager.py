@@ -12,7 +12,7 @@ def get_supabase() -> Optional[Client]:
     global _supabase_client
     if _supabase_client is None:
         url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_KEY", "")
+        key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY", "")
         if url and key:
             _supabase_client = create_client(url, key)
     return _supabase_client
@@ -26,14 +26,16 @@ class ConversationManager:
     def is_configured(self) -> bool:
         return self.client is not None
     
-    def create_conversation(self, user_id: str, session_id: str, metadata: Optional[dict] = None) -> Optional[dict]:
+    def create_conversation(self, user_id: str, conversation_id: Optional[str] = None, metadata: Optional[dict] = None) -> Optional[dict]:
         if not self.is_configured():
             return None
         
         try:
+            conv_id = conversation_id or str(uuid.uuid4())
             data = {
+                "id": conv_id,
                 "user_id": user_id,
-                "session_id": session_id,
+                "session_id": conv_id,
                 "metadata": metadata or {}
             }
             
@@ -43,23 +45,24 @@ class ConversationManager:
             print(f"Error creating conversation: {e}")
             return None
     
-    def get_or_create_conversation(self, user_id: str, session_id: str) -> Optional[str]:
+    def get_or_create_conversation(self, user_id: str, conversation_id: Optional[str] = None) -> Optional[str]:
+        conv_id = conversation_id or str(uuid.uuid4())
         if not self.is_configured():
-            return session_id
+            return conv_id
         
         try:
             result = self.client.table("conversations").select("id").eq(
-                "user_id", user_id
-            ).eq("session_id", session_id).execute()
+                "id", conv_id
+            ).execute()
             
             if result.data:
                 return result.data[0]["id"]
             
-            new_conv = self.create_conversation(user_id, session_id)
-            return new_conv["id"] if new_conv else session_id
+            new_conv = self.create_conversation(user_id, conv_id)
+            return new_conv["id"] if new_conv else conv_id
         except Exception as e:
             print(f"Error getting conversation: {e}")
-            return session_id
+            return conv_id
     
     def update_conversation_summary(self, conversation_id: str, summary: str) -> bool:
         if not self.is_configured():

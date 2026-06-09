@@ -11,7 +11,7 @@ def get_supabase_client() -> Optional[Client]:
     global _supabase_client
     if _supabase_client is None:
         url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_KEY", "")
+        key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY", "")
         if url and key:
             _supabase_client = create_client(url, key)
     return _supabase_client
@@ -20,11 +20,12 @@ def get_supabase_client() -> Optional[Client]:
 def get_embeddings() -> Optional[GoogleGenerativeAIEmbeddings]:
     global _embeddings
     if _embeddings is None:
-        api_key = os.getenv("GOOGLE_API_KEY", "")
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY", "")
         if api_key:
             _embeddings = GoogleGenerativeAIEmbeddings(
-                model="models/embedding-001",
-                google_api_key=api_key
+                model="gemini-embedding-2-preview",
+                google_api_key=api_key,
+                output_dimensionality=768,
             )
     return _embeddings
 
@@ -163,7 +164,8 @@ class VectorStore:
             scored = []
             for mem in all_memories:
                 if mem.get("embedding"):
-                    similarity = self._cosine_similarity(query_embedding, mem["embedding"])
+                    mem_embedding = self._parse_embedding(mem["embedding"])
+                    similarity = self._cosine_similarity(query_embedding, mem_embedding)
                     if similarity > 0.7:
                         scored.append((similarity, mem))
             
@@ -173,6 +175,18 @@ class VectorStore:
             print(f"Error searching memories: {e}")
             return []
     
+    def _parse_embedding(self, embedding: Any) -> list[float]:
+        if embedding is None:
+            return []
+        if isinstance(embedding, (list, tuple)):
+            return [float(x) for x in embedding]
+        if isinstance(embedding, str):
+            values = embedding.strip()
+            if values.startswith("[") and values.endswith("]"):
+                values = values[1:-1]
+            return [float(x) for x in values.split(",") if x.strip()]
+        return [float(embedding)] if embedding != "" else []
+
     def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
         dot = sum(x * y for x, y in zip(a, b))
         norm_a = sum(x * x for x in a) ** 0.5

@@ -46,10 +46,20 @@ class ChatResponse(BaseModel):
     tools_called: list[dict] | None = None
 
 
+class ResetRequest(BaseModel):
+    conversation_id: str
+
+
 @router.post("/agent/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     try:
         conversation_id = request.conversation_id or str(uuid.uuid4())
+        from memory.manager import memory_manager
+
+        conversation_id = memory_manager.conversation_manager.get_or_create_conversation(
+            request.user_id,
+            conversation_id,
+        )
 
         result = await run_agent(
             user_message=request.message,
@@ -65,6 +75,13 @@ async def chat(request: ChatRequest) -> ChatResponse:
         last_message = (
             extract_message_content(messages[-1].content) if messages else "No response"
         )
+
+        try:
+            memory_manager.conversation_manager.update_conversation_summary(
+                conversation_id, last_message
+            )
+        except Exception:
+            pass
 
         tools_called = []
         for msg in messages:
@@ -90,10 +107,12 @@ async def agent_health():
 
 
 @router.post("/agent/reset")
-async def reset_conversation(conversation_id: str):
+async def reset_conversation(request: ResetRequest):
     try:
         from memory.manager import memory_manager
-        success = memory_manager.conversation_manager.delete_conversation(conversation_id)
-        return {"success": success, "conversation_id": conversation_id}
+        success = memory_manager.conversation_manager.delete_conversation(
+            request.conversation_id
+        )
+        return {"success": success, "conversation_id": request.conversation_id}
     except Exception as e:
         return {"success": False, "error": str(e)}
