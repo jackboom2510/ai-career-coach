@@ -48,6 +48,7 @@ export interface UserProfile {
   originalStartDate?: string; // To track if schedule shifted
   rescheduleCount?: number; // How many times they adjusted
   language?: string; // User's preferred language (e.g., 'en', 'vi')
+  email?: string; // Optional email address for push subscriptions
   
   // Engagement
   streak?: Streak;

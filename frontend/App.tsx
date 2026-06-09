@@ -10,11 +10,27 @@ import LanguageSelector from './components/LanguageSelector';
 import Confetti from './components/Confetti';
 import AIThoughtScreen from './components/AIThoughtScreen';
 import BadgeDisplay from './components/BadgeDisplay';
+// 1. IMPORT QUIZ MODAL VÀO ĐÂY
+import QuizModal from './components/QuizModal';
 import { generateStudyPlan, regenerateWeekPlan } from './services/geminiService';
 import { updateStreak, checkNewBadges, calculateTimeEstimation } from './services/engagementService';
 import { UserProfile, StudyPlan, UnlockedBadge } from './types';
 import { Map, Calendar, Briefcase, AlertCircle, Menu, X, Edit3, Trash2, RefreshCcw, CheckCircle2, Download, Copy, FileText, ChevronDown, Flame, Trophy } from 'lucide-react';
 import { jsPDF } from "jspdf";
+
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const STORAGE_KEY = 'ai-career-coach-v1';
 
@@ -40,9 +56,53 @@ const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [badgeToast, setBadgeToast] = useState<UnlockedBadge | null>(null);
   
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [pendingQuizData, setPendingQuizData] = useState<{ weekIndex: number, taskIndex: number, newPlan: StudyPlan, weekTheme: string } | null>(null);
+  
   // Export Menu State
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  const registerPushNotifications = async () => {
+    try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          showToast("Trình duyệt không hỗ trợ thông báo web push.");
+          return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          showToast("Bạn cần cho phép thông báo để nhận nhắc học.");
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+
+        const response = await fetch(`${API_BASE_URL}/push/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              endpoint: subscription.endpoint,
+              keys: subscription.toJSON().keys,
+              user_id: profile?.email || "anonymous",
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast("Nhắc học đã được kích hoạt thành công!");
+        } else {
+          showToast("Đăng ký thông báo thất bại.");
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Không thể đăng ký thông báo.");
+    }
+  };  
 
   // Close export menu on outside click
   useEffect(() => {
@@ -93,7 +153,7 @@ const App: React.FC = () => {
     }
   }, [profile, studyPlan, selectedWeek]);
 
-  // Toast helper
+  // Toast helpers
   const showToast = (msg: string) => {
       setToastMessage(msg);
       setTimeout(() => setToastMessage(null), 3000);
@@ -110,21 +170,19 @@ const App: React.FC = () => {
 
   // Handle Edit Profile Logic
   const handleEditRequest = () => {
-    // Show confirmation modal before allowing edit which resets progress
     setShowEditConfirm(true);
   };
 
   const confirmEdit = () => {
-     setStudyPlan(null); // Clear plan to show form
-     setError(null);
-     setShowEditConfirm(false);
-     setMobileMenuOpen(false); // Close mobile menu if open
+       setStudyPlan(null); // Clear plan to show form
+       setError(null);
+       setShowEditConfirm(false);
+       setMobileMenuOpen(false); // Close mobile menu if open
   };
 
   const handleResetAllData = () => {
       if (window.confirm("Are you sure you want to delete ALL saved data (profile and roadmap)? This cannot be undone.")) {
           localStorage.removeItem(STORAGE_KEY);
-          // Small delay to make UI feel responsive
           setTimeout(() => {
               setProfile(undefined);
               setStudyPlan(null);
@@ -206,50 +264,91 @@ const App: React.FC = () => {
       setSelectedWeek(week);
   };
 
-  // Navigating inside This Week view
   const handleNavigateWeek = (weekIndex: number) => {
-      // weekIndex is 0-based, selectedWeek is 1-based usually
       const newWeekNum = weekIndex + 1;
       setSelectedWeek(newWeekNum);
   };
 
-  const handleToggleTask = (weekIndex: number, taskIndex: number) => {
+  
+  const handleToggleTask = async (weekIndex: number, taskIndex: number) => {
     if (!studyPlan || !profile) return;
     
-    // 1. Update Task Completion
-    const newPlan = { ...studyPlan };
+    const newPlan = JSON.parse(JSON.stringify(studyPlan));
     const week = newPlan.roadmap[weekIndex];
+    const task = week.tasks[taskIndex];
     
-    if (week && week.tasks[taskIndex]) {
-        week.tasks[taskIndex].completed = !week.tasks[taskIndex].completed;
+    
+    if (studyPlan.roadmap[weekIndex].tasks[taskIndex].completed) {
+        task.completed = false;
+        setStudyPlan(newPlan); 
         
-        // Check for week completion (Celebration!)
-        const isWeekComplete = week.tasks.every(t => t.completed);
-        const wasWeekComplete = studyPlan.roadmap[weekIndex].tasks.every(t => t.completed);
-        
-        if (isWeekComplete && !wasWeekComplete) {
-            setShowConfetti(true);
-            showToast(`🎉 Week ${week.weekNumber} Complete! You're crushing it!`);
-            setTimeout(() => setShowConfetti(false), 3000);
-        }
-
-        setStudyPlan(newPlan);
-
-        // 2. Update Streak
         const updatedStreak = updateStreak(profile);
-        const updatedProfile = { ...profile, streak: updatedStreak };
-        
-        // 3. Check for Badges
-        const newBadges = checkNewBadges(updatedProfile, newPlan);
-        if (newBadges.length > 0) {
-            updatedProfile.badges = [...(updatedProfile.badges || []), ...newBadges];
-            // Show badge toast for the first new badge
-            showBadgeToast(newBadges[0]);
-        }
-
-        setProfile(updatedProfile);
+        setProfile({ ...profile, streak: updatedStreak });
+        return;
     }
+    
+    
+    task.completed = true;
+    
+    setPendingQuizData({ 
+        weekIndex, 
+        taskIndex, 
+        newPlan, // Đẩy bản nháp này vào hàng chờ
+        weekTheme: `Nội dung: ${task.description} (Thuộc tuần: ${week.theme})` 
+    });
+    
+    setShowQuizModal(true); 
   };
+  const handleQuizPassed = async () => {
+    if (!pendingQuizData || !profile) return;
+    
+    const { weekIndex, newPlan, weekTheme } = pendingQuizData;
+    const week = newPlan.roadmap[weekIndex];
+
+    setShowConfetti(true);
+    showToast(`🎉 Xuất sắc! Bạn đã vượt qua bài test Tuần ${week.weekNumber}!`);
+    setTimeout(() => setShowConfetti(false), 3000);
+
+    // Kích hoạt gọi API lưu lên Supabase vì đã đỗ Quiz
+    try {
+        console.log("[API] Đang tiến hành gọi fetch đồng bộ lên Backend...");
+        const response = await fetch(`${API_BASE_URL}/roadmap/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: profile?.email || "anonymous",
+                week_number: week.weekNumber,
+                theme: weekTheme
+            })
+        });
+        const resData = await response.json();
+        console.log("[Supabase] Kết quả đồng bộ trả về thành công từ BE:", resData);
+    } catch (error) {
+        console.error("Lỗi khi đồng bộ tiến độ lên server:", error);
+    }
+
+    // Tiến hành cập nhật tiến độ UI như bình thường
+    setStudyPlan(newPlan);
+    const updatedStreak = updateStreak(profile);
+    const updatedProfile = { ...profile, streak: updatedStreak };
+    
+    const newBadges = checkNewBadges(updatedProfile, newPlan);
+    if (newBadges.length > 0) {
+        updatedProfile.badges = [...(updatedProfile.badges || []), ...newBadges];
+        showBadgeToast(newBadges[0]);
+    }
+    setProfile(updatedProfile);
+    
+    setShowQuizModal(false);
+    setPendingQuizData(null);
+  };
+
+  const handleQuizFailed = () => {
+    showToast("Bạn cần ôn tập thêm để vượt qua bài test. Ô Checkbox đã được hủy.");
+    setShowQuizModal(false);
+    setPendingQuizData(null);
+  };
+
 
   const handleRegenerateWeek = async () => {
       if (!studyPlan || !profile) return;
@@ -262,9 +361,7 @@ const App: React.FC = () => {
       
       try {
           const newWeekData = await regenerateWeekPlan(selectedWeek, currentWeek, profile);
-          
           const newPlan = { ...studyPlan };
-          // Preserve existing notes when regenerating
           newWeekData.notes = currentWeek.notes;
           
           newPlan.roadmap[weekIndex] = newWeekData;
@@ -279,11 +376,9 @@ const App: React.FC = () => {
   const handleUpdateNotes = (weekNumber: number, notes: string) => {
       if (!studyPlan || !profile) return;
 
-      // 1. Update Profile (Persistence)
       const updatedWeekNotes = { ...(profile.weekNotes || {}), [weekNumber]: notes };
       setProfile({ ...profile, weekNotes: updatedWeekNotes });
 
-      // 2. Update Study Plan (View)
       const newPlan = { ...studyPlan };
       const weekIndex = newPlan.roadmap.findIndex(w => w.weekNumber === weekNumber);
       if (weekIndex !== -1) {
@@ -292,7 +387,6 @@ const App: React.FC = () => {
       }
   };
 
-  // EXPORT HANDLERS
   const getPlanAsText = () => {
       if (!studyPlan || !profile) return "";
       let text = `# Career Roadmap: ${profile.targetRole}\n`;
@@ -346,22 +440,17 @@ const App: React.FC = () => {
       if (!studyPlan || !profile) return;
       
       const doc = new jsPDF();
-      
-      // Title
       doc.setFontSize(22);
-      doc.setTextColor(79, 70, 229); // Indigo 600
+      doc.setTextColor(79, 70, 229); 
       doc.text(`Career Roadmap: ${profile.targetRole}`, 20, 20);
       
-      // Subtitle
       doc.setFontSize(12);
       doc.setTextColor(100);
       doc.text(`Generated by AI Career Coach | ${profile.timelineMonths} Month Plan`, 20, 30);
       
       let yPos = 45;
 
-      // Iterate Weeks
       studyPlan.roadmap.forEach(week => {
-          // Check for page break
           if (yPos > 250) {
               doc.addPage();
               yPos = 20;
@@ -414,8 +503,6 @@ const App: React.FC = () => {
 
   const currentWeekData = studyPlan?.roadmap.find(w => w.weekNumber === selectedWeek);
   const currentWeekIndex = studyPlan?.roadmap.findIndex(w => w.weekNumber === selectedWeek) ?? -1;
-
-  // Estimation Calculation for Profile View
   const estimation = studyPlan && profile ? calculateTimeEstimation(studyPlan, profile) : { totalRemainingHours: 0, hoursPerWeek: 10 };
 
   return (
@@ -522,6 +609,15 @@ const App: React.FC = () => {
           onConfirm={confirmReschedule}
       />
 
+      {/* MODAL KIỂM TRA QUIZ TÍCH HỢP */}
+      <QuizModal 
+          isOpen={showQuizModal}
+          theme={pendingQuizData?.weekTheme || ""}
+          onPassed={handleQuizPassed}
+          onFailed={handleQuizFailed}
+          onClose={handleQuizFailed} 
+      />
+
       {/* Left Panel: Onboarding / Settings */}
       <div className={`
         fixed lg:static inset-0 z-40 bg-white lg:bg-transparent transform transition-transform duration-300 ease-in-out lg:transform-none lg:w-96 lg:flex-shrink-0 flex flex-col border-r border-slate-200
@@ -532,7 +628,6 @@ const App: React.FC = () => {
                  <OnboardingForm onSubmit={handleSubmit} isLoading={loading} initialData={profile} />
             ) : (
                 <div className="flex flex-col h-full">
-                    {/* Header with Edit Button (Desktop) */}
                     <div className="flex justify-between items-start mb-6">
                         <div>
                           <h2 className="text-xl font-bold text-slate-800">Your Profile</h2>
@@ -710,6 +805,12 @@ const App: React.FC = () => {
                         >
                             <Briefcase className="w-4 h-4" />
                             Project Ideas
+                        </button>
+                        <button
+                            onClick={registerPushNotifications}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium transition-colors mb-2"
+                        >
+                            Bật nhắc học
                         </button>
                     </div>
 
